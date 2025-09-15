@@ -1,0 +1,54 @@
+name: Deploy
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_run:
+    workflows: ["Tests"]
+    types: [completed]
+    branches: [ main, master ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'push' }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18.18.0'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build application
+      run: npm run build
+
+    - name: Build Docker image
+      run: docker build -t graphql-api:${{ github.sha }} .
+
+    # Aquí puedes agregar el despliegue a tu plataforma preferida
+    # Por ejemplo, para Heroku:
+    # - name: Deploy to Heroku
+    #   uses: akhileshns/heroku-deploy@v3.12.12
+    #   with:
+    #     heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
+    #     heroku_app_name: "your-app-name"
+    #     heroku_email: "your-email@example.com"
+
+    # O para AWS ECS:
+    # - name: Configure AWS credentials
+    #   uses: aws-actions/configure-aws-credentials@v2
+    #   with:
+    #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+    #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    #     aws-region: us-east-1
+    #
+    # - name: Deploy to ECS
+    #   run: |
+    #     # Comandos para desplegar a ECS
